@@ -1,14 +1,17 @@
 const fs = require('fs');
 const os = require('os');
 const ytdl = require('ytdl-core');
+const progress = require('progress');
+const progressStream = require('progress-stream');
 
 // YouTube video URL
-const videoUrl = 'https://www.youtube.com/[EXAMPLE]';
+const videoUrl = 'https://www.youtube.com/watch?v=hYz8K9pnzn8';
 
 // Output file paths
 const videoOutputPath = `${os.homedir()}/Downloads/video.mp4`;
 const audioOutputPath = `${os.homedir()}/Downloads/audio.mp3`;
 
+// Download function
 // Download function
 const downloadVideoAndAudio = async (url, videoOutputPath, audioOutputPath) => {
   try {
@@ -21,12 +24,56 @@ const downloadVideoAndAudio = async (url, videoOutputPath, audioOutputPath) => {
     }
 
     // Download video
-    const videoStream = ytdl(url, { format: videoFormat });
-    videoStream.pipe(fs.createWriteStream(videoOutputPath));
+    await new Promise((resolve, reject) => {
+      const videoStream = ytdl(url, { format: videoFormat });
+      const videoProgStream = progressStream({
+        length: videoFormat.contentLength,
+        time: 100 /* ms */
+      });
+      const videoBar = new progress('downloading video [:bar] :percent :etas', {
+        complete: '=',
+        incomplete: ' ',
+        width: 20,
+        total: parseInt(videoFormat.contentLength),
+      });
+      videoProgStream.on('progress', (progress) => {
+        videoBar.tick(progress.delta);
+      });
+      videoStream.pipe(videoProgStream).pipe(fs.createWriteStream(videoOutputPath))
+        .on('finish', resolve)
+        .on('error', reject);
+    });
 
     // Download audio
-    const audioStream = ytdl(url, { format: audioFormat });
-    audioStream.pipe(fs.createWriteStream(audioOutputPath));
+    await new Promise((resolve, reject) => {
+      const audioStream = ytdl(url, { format: audioFormat });
+    
+      // Estimate the total size of the audio file
+      const total = audioFormat.bitrate * audioFormat.approxDurationMs / 8000; // bitrate is in bits per second and duration is in milliseconds, so we divide by 8000 to get the size in bytes
+    
+      const audioProgStream = progressStream({
+        length: total,
+        time: 100 /* ms */
+      });
+    
+      // console.log(audioFormat); // Log the audioFormat object
+    
+      const audioBar = new progress('downloading audio [:bar] :percent :etas', {
+        complete: '=',
+        incomplete: ' ',
+        width: 20,
+        total: total,
+      });
+      audioProgStream.on('progress', (progress) => {
+        audioBar.tick(progress.delta);
+      });
+      audioStream.pipe(audioProgStream).pipe(fs.createWriteStream(audioOutputPath))
+        .on('finish', () => {
+          console.log('\nDownload complete');
+          resolve();
+        })
+        .on('error', reject);
+    });
 
   } catch (error) {
     console.error('Error downloading video or audio:', error);
