@@ -1,35 +1,36 @@
 const fs = require('fs');
+const os = require('os');
 const ytdl = require('ytdl-core');
 
 // YouTube video URL
-const videoUrl = 'https://www.youtube.com/watch?v=VIDEO_ID';
+const videoUrl = 'https://www.youtube.com/[EXAMPLE]';
 
-// Output file path
-const outputPath = 'output.mp4';
+// Output file paths
+const videoOutputPath = `${os.homedir()}/Downloads/video.mp4`;
+const audioOutputPath = `${os.homedir()}/Downloads/audio.mp3`;
 
 // Download function
-const downloadVideo = async (url, outputPath) => {
+const downloadVideoAndAudio = async (url, videoOutputPath, audioOutputPath) => {
   try {
     const videoInfo = await ytdl.getInfo(url);
-    const formats = ytdl.filterFormats(videoInfo.formats, 'videoandaudio');
+    const videoFormat = ytdl.chooseFormat(videoInfo.formats, { quality: 'highestvideo' });
+    const audioFormat = ytdl.chooseFormat(videoInfo.formats, { quality: 'highestaudio' });
 
-    // Choose a format (e.g., highest quality MP4 format)
-    const mp4Format = formats.find(format => format.container === 'mp4');
-
-    if (!mp4Format) {
-      throw new Error('MP4 format not found');
+    if (!videoFormat || !audioFormat) {
+      throw new Error('Format not found');
     }
 
-    const videoStream = ytdl(url, { format: mp4Format });
-    videoStream.pipe(fs.createWriteStream(outputPath));
+    // Download video
+    const videoStream = ytdl(url, { format: videoFormat });
+    videoStream.pipe(fs.createWriteStream(videoOutputPath));
 
-    videoStream.on('end', () => {
-      console.log('Download complete');
-    });
+    // Download audio
+    const audioStream = ytdl(url, { format: audioFormat });
+    audioStream.pipe(fs.createWriteStream(audioOutputPath));
+
   } catch (error) {
-    console.error('Error downloading video:', error);
+    console.error('Error downloading video or audio:', error);
   }
 };
 
-// Call the download function
-downloadVideo(videoUrl, outputPath);
+downloadVideoAndAudio(videoUrl, videoOutputPath, audioOutputPath);
