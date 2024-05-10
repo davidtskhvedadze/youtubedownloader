@@ -5,7 +5,7 @@ const progress = require('progress');
 const progressStream = require('progress-stream');
 
 // YouTube video URL
-const videoUrl = 'https://www.youtube.com/watch?v=hYz8K9pnzn8';
+const videoUrl = 'https://www.youtube.com/[EXMAPLE]';
 
 // Output file paths
 const videoOutputPath = `${os.homedir()}/Downloads/video.mp4`;
@@ -16,7 +16,7 @@ const audioOutputPath = `${os.homedir()}/Downloads/audio.mp3`;
 const downloadVideoAndAudio = async (url, videoOutputPath, audioOutputPath) => {
   try {
     const videoInfo = await ytdl.getInfo(url);
-    const videoFormat = ytdl.chooseFormat(videoInfo.formats, { quality: 'highestvideo' });
+    const videoFormat = ytdl.chooseFormat(videoInfo.formats, { quality: '137' });
     const audioFormat = ytdl.chooseFormat(videoInfo.formats, { quality: 'highestaudio' });
 
     if (!videoFormat || !audioFormat) {
